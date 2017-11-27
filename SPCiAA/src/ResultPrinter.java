@@ -1,6 +1,5 @@
 
 import java.awt.Dimension;
-import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
@@ -21,15 +20,18 @@ public class ResultPrinter {
         frame.setVisible(true);
     }
 
-    public static void printResult(double[] result) {
+    public static void printResult(final double[] result) {
         try {
-            SwingUtilities.invokeAndWait(() -> {
-                double[] x = new double[result.length];
-                for (int i = 0; i < result.length; ++i) {
-                    x[i] = i / (double) (result.length - 1);
+            SwingUtilities.invokeAndWait(new Runnable() {
+                @Override
+                public void run() {
+                    double[] x = new double[result.length];
+                    for (int i = 0; i < result.length; ++i) {
+                        x[i] = i / (double) (result.length - 1);
+                    }
+                    plot.removeAllPlots();
+                    plot.addLinePlot("my plot", x, result);
                 }
-                plot.removeAllPlots();
-                plot.addLinePlot("my plot", x, result);
             });
         } catch (Exception e) {
             System.err.println("Plotting issues");

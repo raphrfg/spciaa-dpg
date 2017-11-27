@@ -1,32 +1,39 @@
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 class Executor {
 
     final Scheduler sched = new Scheduler();
     final Vertex root = new Vertex(null, null, null, "S");
     
-    final Problem problem = new AdvectionImplicit();
+    final Problem problem = new HeatTransfer();
 
     private Set<Vertex> parentsOf(Collection<Vertex> vs) {
-        return vs.stream().map(v -> v.m_parent).collect(toSet());
+        Set<Vertex> parents = new HashSet<>();
+        for (Vertex v : vs) {
+            parents.add(v.m_parent);
+        }
+        return parents;
     }
 
     public void run(int k, double dt, int steps) throws Exception {
         final List<Vertex> leafs = buildTree(k);
 
-        Function<Double, Double> init = x -> {
+        Function<Double, Double> init = new Function<Double, Double>() {
+            @Override
+            public Double apply(Double x) {
 //            double r = 5 * abs(x - 0.25);
 //            return r > 1 ? 0 : (r + 1) * (r + 1) * (r - 1) * (r - 1);
-            return Math.sin(2 * Math.PI *x);
+                return Math.sin(2 * Math.PI *x);
+            }
         };
         setInitState(leafs, init);
 
@@ -45,12 +52,32 @@ class Executor {
         // going up
         Set<Vertex> level = parentsOf(leafs);
         while (level.size() > 1) {
-            sched.forEachVertex(level, A2::new);
-            sched.forEachVertex(level, E2::new);
+            sched.forEachVertex(level, new BiFunction<Vertex, CyclicBarrier, Production>() {
+                @Override
+                public Production apply(Vertex a, CyclicBarrier b) {
+                    return new A2(a, b);
+                }
+            });
+            sched.forEachVertex(level, new BiFunction<Vertex, CyclicBarrier, Production>() {
+                @Override
+                public Production apply(Vertex a, CyclicBarrier b) {
+                    return new E2(a, b);
+                }
+            });
             level = parentsOf(level);
         }
-        sched.executeOne(b -> new Aroot(root, b));
-        sched.executeOne(b -> new Eroot(root, b));
+        sched.executeOne(new Function<CyclicBarrier, Production>() {
+            @Override
+            public Production apply(CyclicBarrier b) {
+                return new Aroot(root, b);
+            }
+        });
+        sched.executeOne(new Function<CyclicBarrier, Production>() {
+            @Override
+            public Production apply(CyclicBarrier b) {
+                return new Eroot(root, b);
+            }
+        });
 
         backwardSub(k);
     }
@@ -66,7 +93,12 @@ class Executor {
     }
 
     private List<Vertex> buildTree(int k) throws InterruptedException, BrokenBarrierException {
-        sched.executeOne(b -> new P1(root, b));
+        sched.executeOne(new Function<CyclicBarrier, Production>() {
+            @Override
+            public Production apply(CyclicBarrier b) {
+                return new P1(root, b);
+            }
+        });
 
         // internal nodes
         List<Vertex> previousLevel = Arrays.asList(root);
@@ -77,7 +109,10 @@ class Executor {
                 sched.add(new P2(v.m_right, sched.barrier()));
             }
             sched.executeStage();
-            previousLevel = sched.productions().stream().map(p -> p.m_vertex).collect(toList());
+            previousLevel = new ArrayList<>();
+            for (Production p : sched.productions()) {
+                previousLevel.add(p.m_vertex);
+            }
         }
 
         // leafs
@@ -87,7 +122,11 @@ class Executor {
             sched.add(new P3(v.m_right, sched.barrier()));
         }
         sched.executeStage();
-        return sched.productions().stream().map(p -> p.m_vertex).collect(toList());
+        previousLevel = new ArrayList<>();
+        for (Production p : sched.productions()) {
+            previousLevel.add(p.m_vertex);
+        }
+        return previousLevel;
     }
 
     private void computeLeafMatrices(int k, double dt, double t, final List<Vertex> leafs)
@@ -106,7 +145,12 @@ class Executor {
     }
     
     private void backwardSub(int k) throws InterruptedException, BrokenBarrierException {
-        sched.executeOne(b -> new BS(root, b));
+        sched.executeOne(new Function<CyclicBarrier, Production>() {
+            @Override
+            public Production apply(CyclicBarrier b) {
+                return new BS(root, b);
+            }
+        });
 
         List<Vertex> previousLevel = Arrays.asList(root);
         for (int i = 1; i < k - 2; ++i) {
@@ -116,7 +160,10 @@ class Executor {
                 sched.add(new BS(v.m_right, sched.barrier()));
             }
             sched.executeStage();
-            previousLevel = sched.productions().stream().map(p -> p.m_vertex).collect(toList());
+            previousLevel = new ArrayList<>();
+            for (Production p : sched.productions()) {
+                previousLevel.add(p.m_vertex);
+            }
         }
 
         sched.beginStage(2 * previousLevel.size());

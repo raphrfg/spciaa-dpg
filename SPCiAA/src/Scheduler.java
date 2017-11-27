@@ -4,8 +4,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class Scheduler {
 
