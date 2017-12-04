@@ -1,11 +1,13 @@
+import static java.lang.Math.PI;
+
 import java.util.concurrent.CyclicBarrier;
 
 public class AdvectionDPG implements Problem {
-
+    
     private static final double beta = 1;
-
+    
     private double F(double t) {
-        return Math.cos(2 * Math.PI * t);
+        return 2 * PI * Math.cos(2 * PI * t);
     }
 
     @Override

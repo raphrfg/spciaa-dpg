@@ -1,3 +1,6 @@
+import static java.lang.Math.PI;
+import static java.lang.Math.cos;
+
 import java.util.concurrent.CyclicBarrier;
 
 public class AdvectionGalerkin implements Problem {
@@ -5,7 +8,7 @@ public class AdvectionGalerkin implements Problem {
     private static final double beta = 1;
 
     private double F(double t) {
-        return Math.cos(2 * Math.PI * t);
+        return 2 * PI * cos(2 * PI * t);
     }
 
     @Override

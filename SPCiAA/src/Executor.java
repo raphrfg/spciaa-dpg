@@ -14,7 +14,7 @@ class Executor {
     final Scheduler sched = new Scheduler();
     final Vertex root = new Vertex(null, null, null, "S");
     
-    final Problem problem = new AdvectionImplicit();
+    final Problem problem = new AdvectionGalerkin();
 
     private Set<Vertex> parentsOf(Collection<Vertex> vs) {
         return vs.stream().map(v -> v.m_parent).collect(toSet());
@@ -56,12 +56,13 @@ class Executor {
     }
 
     private void setInitState(List<Vertex> leafs, Function<Double, Double> init) {
-        double h = 1.0 / leafs.size();
+        double h = 1.0 / (leafs.size() + 1);
         for (int i = 0; i < leafs.size(); ++i) {
             double x1 = i * h;
             double x2 = (i + 1) * h;
-            leafs.get(i).m_x[1] = init.apply(x1);
-            leafs.get(i).m_x[2] = init.apply(x2);
+            double x3 = (i + 2) * h;
+            leafs.get(i).m_x[1] = 0.5 * (init.apply(x1) + init.apply(x2));
+            leafs.get(i).m_x[2] = 0.5 * (init.apply(x2) + init.apply(x3));
         }
     }
 
@@ -132,7 +133,7 @@ class Executor {
         double[] initState = extractSolution(leafs);
         ResultPrinter.printResult(initState);
 //        ResultPrinter.plot.setFixedBounds(1, -0.2, 1.8);
-        ResultPrinter.plot.setFixedBounds(1, -1, 1);
+        ResultPrinter.plot.setFixedBounds(1, -1.5, 1.5);
         TimeUnit.MILLISECONDS.sleep(delay);
     }
 
