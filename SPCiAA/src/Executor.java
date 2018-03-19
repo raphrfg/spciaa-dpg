@@ -14,7 +14,7 @@ class Executor {
     final Scheduler sched = new Scheduler();
     final Vertex root = new Vertex(null, null, null, "S");
     
-    final Problem problem = new AdvectionGalerkin();
+    final Problem problem = new AdvectionExplicit();
 
     private Set<Vertex> parentsOf(Collection<Vertex> vs) {
         return vs.stream().map(v -> v.m_parent).collect(toSet());
@@ -61,8 +61,8 @@ class Executor {
             double x1 = i * h;
             double x2 = (i + 1) * h;
             double x3 = (i + 2) * h;
-            leafs.get(i).m_x[1] = 0.5 * (init.apply(x1) + init.apply(x2));
-            leafs.get(i).m_x[2] = 0.5 * (init.apply(x2) + init.apply(x3));
+            leafs.get(i).m_x[1] = init.apply(x1);
+            leafs.get(i).m_x[2] = init.apply(x2);
         }
     }
 
