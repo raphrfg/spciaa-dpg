@@ -14,7 +14,7 @@ class Executor {
     final Scheduler sched = new Scheduler();
     final Vertex root = new Vertex(null, null, null, "S");
     
-    final Problem problem = new AdvectionExplicit();
+    final Problem problem = new AdvectionImplicit();
 
     private Set<Vertex> parentsOf(Collection<Vertex> vs) {
         return vs.stream().map(v -> v.m_parent).collect(toSet());
